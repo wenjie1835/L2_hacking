@@ -1,0 +1,30 @@
+{
+  "output_dir": "results/group_meeting_full",
+  "train_pairs": 1200,
+  "test_pairs": 800,
+  "epochs": 70,
+  "batch_size": 256,
+  "seeds": [
+    0,
+    1
+  ],
+  "weight_decays": [
+    0.0,
+    0.001,
+    0.01,
+    0.1,
+    0.5,
+    1.0
+  ],
+  "n_values": [
+    1,
+    4,
+    16,
+    64
+  ],
+  "bon_prompts": 400,
+  "true_dim": 6,
+  "spur_dim": 14,
+  "noise_dim": 12,
+  "quick": false
+}

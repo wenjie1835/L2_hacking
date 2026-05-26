@@ -26,7 +26,7 @@ The experiment is intentionally synthetic so that the true causal feature and th
 ## Quick start
 
 ```bash
-cd reward_hacking_wd_experiment
+cd L2_hacking
 python src/run_experiment.py --device cpu --quick
 ```
 
@@ -35,6 +35,38 @@ For a more stable run:
 ```bash
 python src/run_experiment.py --device cpu --train-pairs 50000 --epochs 12 --seeds 0 1 2 3 4
 ```
+
+## Group Meeting Workflow
+
+For a small workflow that matches the NeurIPS-paper story, run:
+
+```bash
+python src/group_meeting_workflow.py --quick
+```
+
+This creates `results/group_meeting_smoke/` with:
+
+- `h12_diagnostics.csv`: H1/H2 diagnostics across six reward-hacking phenomena and three small reward-model variants.
+- `h3_weight_decay.csv`: fixed-size reward model sweep over `weight_decay`.
+- `h3_best_of_n.csv`: best-of-N optimization pressure curves.
+- `report.md`: compact tables for slides.
+
+Use this version for a slightly more stable group-meeting table:
+
+```bash
+python src/group_meeting_workflow.py \
+  --output-dir results/group_meeting_full \
+  --train-pairs 1200 \
+  --test-pairs 800 \
+  --epochs 70 \
+  --seeds 0 1 \
+  --weight-decays 0 1e-3 1e-2 1e-1 5e-1 1.0
+```
+
+The workflow separates the claims:
+
+- H1/H2 uses a stronger domain-shift suite to show reward-sensitive AGOP directions stay shared across source and target while their true-utility meaning changes.
+- H3 uses a cleaner mitigation suite where the true feature is available but proxy shortcuts still tempt the reward model, then checks whether weight decay improves best-of-N selected true utility.
 
 ## Output files
 

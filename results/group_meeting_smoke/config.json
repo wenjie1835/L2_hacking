@@ -1,0 +1,26 @@
+{
+  "output_dir": "results/group_meeting_smoke",
+  "train_pairs": 500,
+  "test_pairs": 300,
+  "epochs": 35,
+  "batch_size": 256,
+  "seeds": [
+    0
+  ],
+  "weight_decays": [
+    0.0,
+    0.1,
+    0.5
+  ],
+  "n_values": [
+    1,
+    4,
+    16,
+    64
+  ],
+  "bon_prompts": 120,
+  "true_dim": 6,
+  "spur_dim": 14,
+  "noise_dim": 12,
+  "quick": true
+}
