@@ -1,0 +1,51 @@
+{
+  "train": {
+    "train_pairs": 50000,
+    "test_pairs": 10000,
+    "batch_size": 512,
+    "epochs": 12,
+    "lr": 0.002,
+    "bottleneck_dim": 4,
+    "hidden_dim": 64,
+    "dropout": 0.0,
+    "weight_decays": [
+      0.0,
+      1e-05,
+      0.0001,
+      0.001,
+      0.01,
+      0.1,
+      1.0
+    ],
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "n_values": [
+      1,
+      4,
+      16,
+      64,
+      256
+    ],
+    "bon_prompts": 2000,
+    "device": "cpu",
+    "output_dir": "results"
+  },
+  "data": {
+    "true_dim": 8,
+    "spur_dim": 8,
+    "noise_dim": 16,
+    "train_rho": 0.9,
+    "iid_rho": 0.9,
+    "ood_rho": 0.0,
+    "reverse_rho": -0.9,
+    "label_noise_std": 0.1,
+    "feature_noise_std": 0.05,
+    "true_observation_noise_std": 0.75,
+    "conflict_strength": 2.0
+  }
+}
