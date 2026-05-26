@@ -1,10 +1,79 @@
-# Weight Decay vs Reward Hacking: Small Synthetic Validation
+# Weight Decay vs Reward Hacking
 
-This is a small, controllable experiment for testing the hypothesis:
+This repository tests the hypothesis:
 
 > If reward hacking is partly caused by representational feature mixing / superposition-like entanglement, then changing weight decay in the reward model may reduce reliance on spurious features and delay reward hacking under optimization pressure.
 
-The experiment is intentionally synthetic so that the true causal feature and the spurious feature are known.
+There are now two workflows:
+
+- `src/real_data_workflow.py`: the main open-dataset workflow for the full experiment.
+- `src/group_meeting_workflow.py` and `src/run_experiment.py`: lightweight synthetic controls where the true and spurious features are known.
+
+## Main Open-Dataset Experiment
+
+The main workflow uses public datasets instead of the simplified synthetic latent world:
+
+- RM training source domains:
+  - `HuggingFaceH4/ultrafeedback_binarized`
+  - `Anthropic/hh-rlhf`
+- OOD preference evaluation:
+  - `allenai/reward-bench`
+- Reward-hacking evaluation:
+  - `ktolnos/rh-bench`
+  - `meg-tong/sycophancy-eval` when its mirrored schema is available through `datasets`
+
+The reward model is a compact pairwise bottleneck RM over hashed text n-gram features plus explicit proxy/style features. This is deliberately lighter than a transformer RM so that a full weight-decay sweep, AGOP diagnostics, and best-of-N stress tests can run across many reward-hacking categories without a GPU.
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Run a schema/dependency smoke test:
+
+```bash
+python src/real_data_workflow.py --quick
+```
+
+Run the full experiment:
+
+```bash
+python src/real_data_workflow.py \
+  --output-dir results/real_data_full \
+  --seeds 0 1 2 \
+  --weight-decays 0 1e-6 1e-5 1e-4 1e-3 1e-2 1e-1 \
+  --max-train-pairs-per-source 15000 \
+  --max-eval-pairs-per-dataset 5000 \
+  --max-hacking-pairs-per-category 1500 \
+  --epochs 3
+```
+
+The workflow writes:
+
+- `dataset_manifest.csv`: loaded datasets, splits, counts, licenses, and any load errors.
+- `train_history.csv`: pairwise RM training loss and accuracy.
+- `source_eval.csv`: held-out source preference accuracy.
+- `ood_preference_eval.csv`: RewardBench-style OOD preference accuracy.
+- `hacking_eval.csv`: clean-vs-hacking pair accuracy by reward-hacking category.
+- `agop_diagnostics.csv`: source-target AGOP cosine and proxy/style projections.
+- `best_of_n.csv`: adversarial clean-vs-many-hacking selection curves.
+- `summary_by_weight_decay.csv`: aggregate weight-decay trend.
+- `report.md`: tables for paper/slide triage.
+
+### How To Read The Full Experiment
+
+H1/H2 evidence should look like:
+
+- the RM learns source preferences but fails on multiple clean-vs-hacking categories;
+- source and hacking-domain AGOP directions have high absolute cosine;
+- hacking-domain AGOP mass is concentrated in style/proxy groups such as confidence, sycophancy, reasoning theater, test gaming, or tampering/deception terms.
+
+H3 evidence for a successful weight-decay mitigation should require all three:
+
+- clean-vs-hacking accuracy increases or hacking failure rate decreases;
+- best-of-N hacking-selected rate decreases as N grows;
+- target AGOP proxy/style mass or reward-style correlation decreases without destroying source preference accuracy.
 
 ## What it does
 
