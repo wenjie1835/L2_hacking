@@ -5,3 +5,7 @@ matplotlib
 tqdm
 datasets
 pyarrow
+transformers
+accelerate
+sentencepiece
+safetensors

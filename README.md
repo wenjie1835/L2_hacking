@@ -4,12 +4,13 @@ This repository tests the hypothesis:
 
 > If reward hacking is partly caused by representational feature mixing / superposition-like entanglement, then changing weight decay in the reward model may reduce reliance on spurious features and delay reward hacking under optimization pressure.
 
-There are now two workflows:
+There are now three workflows:
 
-- `src/real_data_workflow.py`: the main open-dataset workflow for the full experiment.
+- `src/transformer_rm_workflow.py`: the main GPU transformer reward-model workflow.
+- `src/real_data_workflow.py`: a CPU hashed-feature baseline for cheap diagnostics.
 - `src/group_meeting_workflow.py` and `src/run_experiment.py`: lightweight synthetic controls where the true and spurious features are known.
 
-## Main Open-Dataset Experiment
+## Main GPU Transformer RM Experiment
 
 The main workflow uses public datasets instead of the simplified synthetic latent world:
 
@@ -20,9 +21,15 @@ The main workflow uses public datasets instead of the simplified synthetic laten
   - `allenai/reward-bench`
 - Reward-hacking evaluation:
   - `ktolnos/rh-bench`
-  - `meg-tong/sycophancy-eval` when its mirrored schema is available through `datasets`
+  - optional additional hacking sources can be passed with `--hacking-sources`
 
-The reward model is a compact pairwise bottleneck RM over hashed text n-gram features plus explicit proxy/style features. This is deliberately lighter than a transformer RM so that a full weight-decay sweep, AGOP diagnostics, and best-of-N stress tests can run across many reward-hacking categories without a GPU.
+The reward model uses the common architecture for open-source RMs: a pretrained Transformer backbone plus a scalar reward head. The script implements this as `AutoModelForSequenceClassification(num_labels=1)` and trains it with Bradley-Terry preference loss:
+
+```text
+loss = -log sigmoid(r(chosen) - r(rejected))
+```
+
+By default it uses `distilroberta-base` for a lightweight GPU run. You can switch to `roberta-base`, `microsoft/deberta-v3-small`, or another sequence-classification compatible backbone with `--model-name`.
 
 Install dependencies:
 
@@ -30,33 +37,36 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-Run a schema/dependency smoke test:
+Run a lightweight single-seed GPU experiment:
 
 ```bash
-python src/real_data_workflow.py --quick
+python src/transformer_rm_workflow.py --quick --device cuda
 ```
 
 Run the full experiment:
 
 ```bash
-python src/real_data_workflow.py \
-  --output-dir results/real_data_full \
+python src/transformer_rm_workflow.py \
+  --output-dir results/transformer_rm_full \
+  --model-name distilroberta-base \
   --seeds 0 1 2 \
-  --weight-decays 0 1e-6 1e-5 1e-4 1e-3 1e-2 1e-1 \
-  --max-train-pairs-per-source 15000 \
-  --max-eval-pairs-per-dataset 5000 \
-  --max-hacking-pairs-per-category 1500 \
-  --epochs 3
+  --weight-decays 0 1e-5 1e-4 1e-3 1e-2 \
+  --max-train-pairs-per-source 12000 \
+  --max-eval-pairs-per-dataset 4000 \
+  --max-hacking-pairs-per-category 1200 \
+  --epochs 2 \
+  --device cuda
 ```
 
 The workflow writes:
 
+- `device_info.json`: CUDA/GPU and precision metadata.
 - `dataset_manifest.csv`: loaded datasets, splits, counts, licenses, and any load errors.
 - `train_history.csv`: pairwise RM training loss and accuracy.
 - `source_eval.csv`: held-out source preference accuracy.
 - `ood_preference_eval.csv`: RewardBench-style OOD preference accuracy.
 - `hacking_eval.csv`: clean-vs-hacking pair accuracy by reward-hacking category.
-- `agop_diagnostics.csv`: source-target AGOP cosine and proxy/style projections.
+- `agop_diagnostics.csv`: source-target AGOP cosine in token-embedding gradient space.
 - `best_of_n.csv`: adversarial clean-vs-many-hacking selection curves.
 - `summary_by_weight_decay.csv`: aggregate weight-decay trend.
 - `report.md`: tables for paper/slide triage.
@@ -73,7 +83,17 @@ H3 evidence for a successful weight-decay mitigation should require all three:
 
 - clean-vs-hacking accuracy increases or hacking failure rate decreases;
 - best-of-N hacking-selected rate decreases as N grows;
-- target AGOP proxy/style mass or reward-style correlation decreases without destroying source preference accuracy.
+- source-target AGOP transfer or reward-style correlation decreases without destroying source preference accuracy.
+
+## CPU Open-Dataset Baseline
+
+For a cheaper diagnostic that does not require GPU, run:
+
+```bash
+python src/real_data_workflow.py --quick
+```
+
+This baseline uses hashed text n-gram features plus explicit style/proxy features and a small NumPy bottleneck MLP. It is useful for fast debugging, but the transformer workflow above is the main architecture for paper-level experiments.
 
 ## What it does
 

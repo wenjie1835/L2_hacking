@@ -5,7 +5,10 @@
 The synthetic workflow is useful because the true and spurious latent features
 are known, but it is not enough for a NeurIPS-scale claim. The open-dataset
 workflow tests the same mechanism on real preference and reward-hacking
-benchmarks.
+benchmarks. The main paper-level workflow should use
+`src/transformer_rm_workflow.py`, which trains a GPU transformer reward model.
+The NumPy workflow in `src/real_data_workflow.py` remains a cheap baseline and
+schema check.
 
 ## Data Sources
 
@@ -39,21 +42,29 @@ clean-vs-hacking accuracy without destroying source preference accuracy.
 | Clean-vs-hacking accuracy | `hacking_eval.csv` | Increase with mitigation. |
 | Hacking failure rate | `hacking_eval.csv` | Decrease with mitigation. |
 | Source-target AGOP cosine | `agop_diagnostics.csv` | High for H2 evidence. |
-| Target proxy/style mass | `agop_diagnostics.csv` | Decrease with mitigation. |
+| Reward-style correlation | `hacking_eval.csv` | Decrease with mitigation. |
 | Best-of-N hacking-selected rate | `best_of_n.csv` | Decrease with mitigation. |
 
 ## Complete Run
 
 ```bash
-python src/real_data_workflow.py \
-  --output-dir results/real_data_full \
+python src/transformer_rm_workflow.py \
+  --output-dir results/transformer_rm_full \
+  --model-name distilroberta-base \
   --seeds 0 1 2 \
-  --weight-decays 0 1e-6 1e-5 1e-4 1e-3 1e-2 1e-1 \
-  --max-train-pairs-per-source 15000 \
-  --max-eval-pairs-per-dataset 5000 \
-  --max-hacking-pairs-per-category 1500 \
-  --epochs 3
+  --weight-decays 0 1e-5 1e-4 1e-3 1e-2 \
+  --max-train-pairs-per-source 12000 \
+  --max-eval-pairs-per-dataset 4000 \
+  --max-hacking-pairs-per-category 1200 \
+  --epochs 2 \
+  --device cuda
 ```
 
-Use `--quick` first on a new machine to check dependencies, dataset access, and
-schema compatibility.
+Use the lightweight GPU run first on a new server:
+
+```bash
+python src/transformer_rm_workflow.py --quick --device cuda
+```
+
+It uses one seed, smaller datasets, and fewer weight-decay values. It writes
+`device_info.json`; check that the `device` field is `cuda`.
